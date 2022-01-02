@@ -13,18 +13,18 @@ class OpenGLRenderer: GLSurfaceView.Renderer {
     private val vertexData: FloatBuffer
     private val tableVerticesWithTriangles = floatArrayOf(
         // Triangle Fan
-           0f,    0f,   1f,   1f,   1f,
-        -0.5f, -0.8f, 0.7f, 0.7f, 0.7f,
-        +0.5f, -0.8f, 0.7f, 0.7f, 0.7f,
-        +0.5f, +0.8f, 0.7f, 0.7f, 0.7f,
-        -0.5f, +0.8f, 0.7f, 0.7f, 0.7f,
-        -0.5f, -0.8f, 0.7f, 0.7f, 0.7f,
+           0f,    0f, 0f, 1.5f,   1f,   1f,   1f,
+        -0.5f, -0.8f, 0f,   1f, 0.7f, 0.7f, 0.7f,
+        +0.5f, -0.8f, 0f,   1f, 0.7f, 0.7f, 0.7f,
+        +0.5f, +0.8f, 0f,   2f, 0.7f, 0.7f, 0.7f,
+        -0.5f, +0.8f, 0f,   2f, 0.7f, 0.7f, 0.7f,
+        -0.5f, -0.8f, 0f,   1f, 0.7f, 0.7f, 0.7f,
         // Line 1
-        -0.5f,    0f,   1f,   0f,   0f,
-        +0.5f,    0f,   1f,   0f,   0f,
+        -0.5f,    0f, 0f, 1.5f,   1f,   0f,   0f,
+        +0.5f,    0f, 0f, 1.5f,   1f,   0f,   0f,
         // Mallets
-          0f,  -0.4f,   0f,   0f,   1f,
-          0f,  +0.4f,   1f,   0f,   0f
+          0f,  -0.4f, 0f,1.25f,   0f,   0f,   1f,
+          0f,  +0.4f, 0f,1.75f,   1f,   0f,   0f
     )
 
     private var program: Int = 0
@@ -32,6 +32,7 @@ class OpenGLRenderer: GLSurfaceView.Renderer {
     private var aPositionLocation: Int = 0
     private var aColorLocation: Int = 0
     private var matrix = FloatArray(16)
+    private var modelMatrix = FloatArray(16)
     private var uMatrixLocation: Int = 0
 
     init {
@@ -66,13 +67,14 @@ class OpenGLRenderer: GLSurfaceView.Renderer {
 
     override fun onSurfaceChanged(p0: GL10?, width: Int, height: Int) {
         glViewport(0, 0, width, height)
-        if (width > height) {
-            val aspectRatio = width.toFloat() / height.toFloat()
-            orthoM(matrix, 0, -aspectRatio, aspectRatio, -1f, 1f, -1f, 1f)
-        } else {
-            val aspectRatio = height.toFloat() / width.toFloat()
-            orthoM(matrix, 0, -1f, 1f, -aspectRatio, aspectRatio, -1f, 1f)
-        }
+        perspectiveM(matrix, 0,45f, width.toFloat() / height.toFloat(), 1f, 10f)
+
+        setIdentityM(modelMatrix, 0)
+        translateM(modelMatrix, 0, 0f, 0f, -3f)
+        rotateM(modelMatrix, 0, -60f, 1f, 0f, 0f)
+        val tempMatrix = FloatArray(16)
+        multiplyMM(tempMatrix, 0, matrix, 0, modelMatrix, 0)
+        tempMatrix.copyInto(matrix)
     }
 
     override fun onDrawFrame(p0: GL10?) {
@@ -89,7 +91,7 @@ class OpenGLRenderer: GLSurfaceView.Renderer {
     }
 
     companion object {
-        const val POSITION_COMPONENT_COUNT = 2
+        const val POSITION_COMPONENT_COUNT = 4
         const val COLOR_COMPONENT_COUNT = 3
         const val BYTES_PER_FLOAT = 4
         const val STRIDE = (POSITION_COMPONENT_COUNT + COLOR_COMPONENT_COUNT) * BYTES_PER_FLOAT
