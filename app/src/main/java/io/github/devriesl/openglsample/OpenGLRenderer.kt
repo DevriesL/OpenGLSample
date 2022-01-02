@@ -11,25 +11,25 @@ import javax.microedition.khronos.opengles.GL10
 class OpenGLRenderer: GLSurfaceView.Renderer {
     private val vertexData: FloatBuffer
     private val tableVerticesWithTriangles = floatArrayOf(
-        // Triangle 1
-        -0.5f, -0.5f,
-        +0.5f, +0.5f,
-        -0.5f, +0.5f,
-        // Triangle 1
-        -0.5f, -0.5f,
-        +0.5f, -0.5f,
-        +0.5f, +0.5f,
+        // Triangle Fan
+           0f,    0f,   1f,   1f,   1f,
+        -0.5f, -0.5f, 0.7f, 0.7f, 0.7f,
+        +0.5f, -0.5f, 0.7f, 0.7f, 0.7f,
+        +0.5f, +0.5f, 0.7f, 0.7f, 0.7f,
+        -0.5f, +0.5f, 0.7f, 0.7f, 0.7f,
+        -0.5f, -0.5f, 0.7f, 0.7f, 0.7f,
         // Line 1
-        -0.5f, 0f,
-        +0.5f, 0f,
+        -0.5f,    0f,   1f,   0f,   0f,
+        +0.5f,    0f,   1f,   0f,   0f,
         // Mallets
-        0f, -0.25f,
-        0f, +0.25f
+          0f, -0.25f,   0f,   0f,   1f,
+          0f, +0.25f,   1f,   0f,   0f
     )
 
     private var program: Int = 0
     private var uColorLocation: Int = 0
     private var aPositionLocation: Int = 0
+    private var aColorLocation: Int = 0
 
     init {
         vertexData = ByteBuffer
@@ -49,10 +49,15 @@ class OpenGLRenderer: GLSurfaceView.Renderer {
 
         uColorLocation = glGetUniformLocation(program, "u_Color")
         aPositionLocation = glGetAttribLocation(program, "a_Position")
+        aColorLocation = glGetAttribLocation(program, "a_Color")
 
         vertexData.position(0)
-        glVertexAttribPointer(aPositionLocation, POSITION_COMPONENT_COUNT, GL_FLOAT, false, 0, vertexData)
+        glVertexAttribPointer(aPositionLocation, POSITION_COMPONENT_COUNT, GL_FLOAT, false, STRIDE, vertexData)
         glEnableVertexAttribArray(aPositionLocation)
+
+        vertexData.position(POSITION_COMPONENT_COUNT)
+        glVertexAttribPointer(aColorLocation, COLOR_COMPONENT_COUNT, GL_FLOAT, false, STRIDE, vertexData)
+        glEnableVertexAttribArray(aColorLocation)
     }
 
     override fun onSurfaceChanged(p0: GL10?, width: Int, height: Int) {
@@ -62,35 +67,36 @@ class OpenGLRenderer: GLSurfaceView.Renderer {
     override fun onDrawFrame(p0: GL10?) {
         glClear(GL_COLOR_BUFFER_BIT)
 
-        glUniform4f(uColorLocation, 1.0f, 1.0f, 1.0f, 1.0f)
-        glDrawArrays(GL_TRIANGLES, 0, 6)
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 6)
 
-        glUniform4f(uColorLocation, 1.0f, 0.0f, 0.0f, 1.0f)
         glDrawArrays(GL_LINES, 6, 2)
 
-        glUniform4f(uColorLocation, 0.0f, 0.0f, 1.0f, 1.0f)
         glDrawArrays(GL_POINTS, 8, 1)
 
-        glUniform4f(uColorLocation, 1.0f, 0.0f, 0.0f, 1.0f)
         glDrawArrays(GL_POINTS, 9, 1)
     }
 
     companion object {
         const val POSITION_COMPONENT_COUNT = 2
+        const val COLOR_COMPONENT_COUNT = 3
         const val BYTES_PER_FLOAT = 4
+        const val STRIDE = (POSITION_COMPONENT_COUNT + COLOR_COMPONENT_COUNT) * BYTES_PER_FLOAT
 
         private const val VERTEX_SHADER = "" +
                 "attribute vec4 a_Position;  \n" +
+                "attribute vec4 a_Color;  \n" +
+                "varying vec4 v_Color;  \n" +
                 "void main(){               \n" +
+                " v_Color = a_Color;  \n" +
                 " gl_Position = a_Position;  \n" +
                 " gl_PointSize = 10.0;  \n" +
                 "}  \n"
 
         private const val FRAGMENT_SHADER = "" +
                 "precision mediump float;" +
-                "uniform vec4 u_Color;" +
+                "varying vec4 v_Color;" +
                 "void main(){" +
-                "  gl_FragColor = u_Color;" +
+                "  gl_FragColor = v_Color;" +
                 "}"
     }
 }
