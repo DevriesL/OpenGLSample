@@ -1,6 +1,7 @@
 package io.github.devriesl.openglsample
 
 import android.opengl.GLES30.*
+import android.opengl.Matrix.*
 import android.opengl.GLSurfaceView
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -13,23 +14,25 @@ class OpenGLRenderer: GLSurfaceView.Renderer {
     private val tableVerticesWithTriangles = floatArrayOf(
         // Triangle Fan
            0f,    0f,   1f,   1f,   1f,
-        -0.5f, -0.5f, 0.7f, 0.7f, 0.7f,
-        +0.5f, -0.5f, 0.7f, 0.7f, 0.7f,
-        +0.5f, +0.5f, 0.7f, 0.7f, 0.7f,
-        -0.5f, +0.5f, 0.7f, 0.7f, 0.7f,
-        -0.5f, -0.5f, 0.7f, 0.7f, 0.7f,
+        -0.5f, -0.8f, 0.7f, 0.7f, 0.7f,
+        +0.5f, -0.8f, 0.7f, 0.7f, 0.7f,
+        +0.5f, +0.8f, 0.7f, 0.7f, 0.7f,
+        -0.5f, +0.8f, 0.7f, 0.7f, 0.7f,
+        -0.5f, -0.8f, 0.7f, 0.7f, 0.7f,
         // Line 1
         -0.5f,    0f,   1f,   0f,   0f,
         +0.5f,    0f,   1f,   0f,   0f,
         // Mallets
-          0f, -0.25f,   0f,   0f,   1f,
-          0f, +0.25f,   1f,   0f,   0f
+          0f,  -0.4f,   0f,   0f,   1f,
+          0f,  +0.4f,   1f,   0f,   0f
     )
 
     private var program: Int = 0
     private var uColorLocation: Int = 0
     private var aPositionLocation: Int = 0
     private var aColorLocation: Int = 0
+    private var matrix = FloatArray(16)
+    private var uMatrixLocation: Int = 0
 
     init {
         vertexData = ByteBuffer
@@ -50,6 +53,7 @@ class OpenGLRenderer: GLSurfaceView.Renderer {
         uColorLocation = glGetUniformLocation(program, "u_Color")
         aPositionLocation = glGetAttribLocation(program, "a_Position")
         aColorLocation = glGetAttribLocation(program, "a_Color")
+        uMatrixLocation = glGetUniformLocation(program, "u_Matrix")
 
         vertexData.position(0)
         glVertexAttribPointer(aPositionLocation, POSITION_COMPONENT_COUNT, GL_FLOAT, false, STRIDE, vertexData)
@@ -62,10 +66,18 @@ class OpenGLRenderer: GLSurfaceView.Renderer {
 
     override fun onSurfaceChanged(p0: GL10?, width: Int, height: Int) {
         glViewport(0, 0, width, height)
+        if (width > height) {
+            val aspectRatio = width.toFloat() / height.toFloat()
+            orthoM(matrix, 0, -aspectRatio, aspectRatio, -1f, 1f, -1f, 1f)
+        } else {
+            val aspectRatio = height.toFloat() / width.toFloat()
+            orthoM(matrix, 0, -1f, 1f, -aspectRatio, aspectRatio, -1f, 1f)
+        }
     }
 
     override fun onDrawFrame(p0: GL10?) {
         glClear(GL_COLOR_BUFFER_BIT)
+        glUniformMatrix4fv(uMatrixLocation, 1, false, matrix, 0)
 
         glDrawArrays(GL_TRIANGLE_FAN, 0, 6)
 
@@ -83,12 +95,13 @@ class OpenGLRenderer: GLSurfaceView.Renderer {
         const val STRIDE = (POSITION_COMPONENT_COUNT + COLOR_COMPONENT_COUNT) * BYTES_PER_FLOAT
 
         private const val VERTEX_SHADER = "" +
+                "uniform mat4 u_Matrix;  \n" +
                 "attribute vec4 a_Position;  \n" +
                 "attribute vec4 a_Color;  \n" +
                 "varying vec4 v_Color;  \n" +
                 "void main(){               \n" +
                 " v_Color = a_Color;  \n" +
-                " gl_Position = a_Position;  \n" +
+                " gl_Position = u_Matrix * a_Position;  \n" +
                 " gl_PointSize = 10.0;  \n" +
                 "}  \n"
 
